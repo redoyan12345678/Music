@@ -25,9 +25,14 @@ function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+import { exportVideo } from './lib/exportEngine';
+
 export default function App() {
   const { loadAudio, play, pause, isPlaying, analyser, currentTime, duration } = useAudioEngine();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [audioFile, setAudioFile] = useState<File | null>(null);
+  const [isExporting, setIsExporting] = useState(false);
+  const [exportProgress, setExportProgress] = useState(0);
   
   const [settings, setSettings] = useState<VisualizerSettings>({
     template: 'circular',
@@ -46,7 +51,37 @@ export default function App() {
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      setAudioFile(file);
       await loadAudio(file);
+    }
+  };
+
+  const handleExport = async () => {
+    const canvas = document.getElementById('visualizer-canvas') as HTMLCanvasElement;
+    if (!canvas || !audioFile) return;
+
+    try {
+      setIsExporting(true);
+      setExportProgress(0);
+      
+      // Auto-restart playback for recording
+      play();
+      
+      const videoUrl = await exportVideo(canvas, audioFile, duration, (p) => {
+        setExportProgress(p);
+      });
+
+      // Download the video
+      const a = document.createElement('a');
+      a.href = videoUrl;
+      a.download = `PulseCanvas_${settings.trackTitle.replace(/\s/g, '_')}.mp4`;
+      a.click();
+    } catch (err) {
+      console.error('Export failed:', err);
+      alert('Export failed. Please ensure your browser supports MediaRecorder and FFmpeg WASM.');
+    } finally {
+      setIsExporting(false);
+      setExportProgress(0);
     }
   };
 
@@ -251,9 +286,18 @@ export default function App() {
                       <p className="text-xs text-white/40 leading-relaxed mb-6">
                         Our cloud-processing rendering engine will capture this visualizer frame-by-frame for maximum quality.
                       </p>
-                      <button className="w-full py-4 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-black font-black uppercase tracking-widest text-xs transition-all flex items-center justify-center gap-2 shadow-lg shadow-cyan-500/20">
-                         Start Export
-                         <Download className="w-4 h-4" />
+                      <button 
+                        onClick={handleExport}
+                        disabled={isExporting}
+                        className={cn(
+                          "w-full py-4 rounded-xl font-black uppercase tracking-widest text-xs transition-all flex items-center justify-center gap-2 shadow-lg",
+                          isExporting
+                            ? "bg-white/5 border border-white/10 text-white/20 cursor-wait"
+                            : "bg-cyan-500 hover:bg-cyan-400 text-black shadow-cyan-500/20"
+                        )}
+                      >
+                         {isExporting ? `Exporting ${(exportProgress * 100).toFixed(0)}%` : 'Start Export'}
+                         {!isExporting && <Download className="w-4 h-4" />}
                       </button>
                    </div>
                 </motion.div>
@@ -312,13 +356,33 @@ export default function App() {
                    <button className="p-3 rounded-lg bg-white/5 text-white/40 hover:text-white hover:bg-white/10 transition-all">
                      <Wind className="w-5 h-5" />
                    </button>
-                   <button className="flex items-center gap-2 px-6 py-3 rounded-xl bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 text-xs font-bold uppercase tracking-widest hover:bg-cyan-500/20 transition-all whitespace-nowrap">
-                     Export 4K <ArrowRight className="w-4 h-4" />
+                   <button 
+                     onClick={handleExport}
+                     disabled={isExporting}
+                     className={cn(
+                       "flex items-center gap-2 px-6 py-3 rounded-xl border text-xs font-bold uppercase tracking-widest transition-all whitespace-nowrap",
+                       isExporting 
+                        ? "bg-white/5 border-white/10 text-white/20 cursor-wait" 
+                        : "bg-cyan-500/10 border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/20"
+                     )}
+                   >
+                     {isExporting ? `Exporting ${(exportProgress * 100).toFixed(0)}%` : 'Export 4K'}
+                     {!isExporting && <ArrowRight className="w-4 h-4" />}
                    </button>
                 </div>
                 
-                <button className="md:hidden w-full flex items-center justify-center gap-2 px-6 py-4 rounded-xl bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 text-xs font-bold uppercase tracking-widest hover:bg-cyan-500/20 transition-all">
-                   Export 4K <ArrowRight className="w-4 h-4" />
+                <button 
+                  onClick={handleExport}
+                  disabled={isExporting}
+                  className={cn(
+                    "md:hidden w-full flex items-center justify-center gap-2 px-6 py-4 rounded-xl border text-xs font-bold uppercase tracking-widest transition-all",
+                    isExporting 
+                      ? "bg-white/5 border-white/10 text-white/20 cursor-wait" 
+                      : "bg-cyan-500/10 border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/20"
+                  )}
+                >
+                   {isExporting ? `Exporting ${(exportProgress * 100).toFixed(0)}%` : 'Export 4K'}
+                   {!isExporting && <ArrowRight className="w-4 h-4" />}
                 </button>
               </div>
             </div>

@@ -190,6 +190,7 @@ export default function VisualizerPreview({ analyser, settings, setSettings, isP
   return (
     <div className="relative w-full aspect-video rounded-2xl overflow-hidden bg-black shadow-2xl border border-white/5">
       <canvas 
+        id="visualizer-canvas"
         ref={canvasRef} 
         width={1920} 
         height={1080} 
