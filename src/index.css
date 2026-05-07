@@ -1,0 +1,77 @@
+@import "tailwindcss";
+
+@theme {
+  --color-bg: #050505;
+  --color-accent: #00f2ff;
+  --color-glass: rgba(255, 255, 255, 0.05);
+  --color-glass-border: rgba(255, 255, 255, 0.1);
+  --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-20px); }
+}
+
+@keyframes spin-slow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@layer base {
+  body {
+    @apply bg-[#050505] text-white antialiased selection:bg-cyan-500/30 overflow-hidden;
+    font-family: var(--font-sans);
+  }
+
+  /* Custom Scrollbar */
+  ::-webkit-scrollbar {
+    width: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply bg-white/10 rounded-full hover:bg-white/20 transition-colors;
+  }
+}
+
+@layer components {
+  .atmosphere-bg {
+    background: 
+      radial-gradient(circle at 20% 30%, rgba(0, 242, 255, 0.08) 0%, transparent 40%),
+      radial-gradient(circle at 80% 70%, rgba(255, 0, 153, 0.05) 0%, transparent 40%),
+      radial-gradient(circle at 50% 50%, rgba(66, 0, 255, 0.03) 0%, transparent 60%);
+    @apply fixed inset-0 -z-10 pointer-events-none overflow-hidden;
+  }
+
+  .glass-panel {
+    @apply backdrop-blur-2xl bg-black/40 border border-white/5 shadow-[0_8px_32px_rgba(0,0,0,0.4)] rounded-2xl;
+  }
+
+  .glow-text {
+    @apply shadow-cyan-500/50 drop-shadow-[0_0_8px_rgba(34,211,238,0.4)];
+  }
+
+  .sidebar-label {
+    @apply text-[10px] uppercase tracking-[0.2em] font-bold text-white/30;
+  }
+}
+
+.animate-float {
+  animation: float 6s ease-in-out infinite;
+}
+
+.animate-spin-slow {
+  animation: spin-slow 12s linear infinite;
+}
+
+/* Custom range input styling */
+input[type="range"] {
+  @apply appearance-none bg-white/5 h-1.5 rounded-full outline-none transition-all;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  @apply appearance-none w-4 h-4 bg-cyan-500 rounded-full cursor-pointer shadow-[0_0_10px_rgba(6,182,212,0.5)] border-2 border-[#050505] transition-transform hover:scale-125 active:scale-150;
+}
