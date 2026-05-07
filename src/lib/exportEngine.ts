@@ -10,10 +10,20 @@ export async function exportVideo(
   const ffmpeg = new FFmpeg();
   const baseURL = 'https://unpkg.com/@ffmpeg/core@0.12.6/dist/umd';
   
-  await ffmpeg.load({
-    coreURL: await toBlobURL(`${baseURL}/ffmpeg-core.js`, 'text/javascript'),
-    wasmURL: await toBlobURL(`${baseURL}/ffmpeg-core.wasm`, 'application/wasm'),
-  });
+  if (!window.crossOriginIsolated) {
+    console.warn('Cross-Origin Isolation is not enabled. FFmpeg might fail to load.');
+    // Attempting to load anyway, but this is a common failure point
+  }
+  
+  try {
+    await ffmpeg.load({
+      coreURL: await toBlobURL(`${baseURL}/ffmpeg-core.js`, 'text/javascript'),
+      wasmURL: await toBlobURL(`${baseURL}/ffmpeg-core.wasm`, 'application/wasm'),
+    });
+  } catch (e) {
+    console.error('FFmpeg Load Error:', e);
+    throw new Error('Video engine failed to load. This usually happens because "Cross-Origin Isolation" is not enabled in the browser headers.');
+  }
 
   ffmpeg.on('log', ({ message }) => console.log('FFmpeg:', message));
 
