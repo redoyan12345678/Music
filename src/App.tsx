@@ -58,7 +58,21 @@ export default function App() {
 
   const handleExport = async () => {
     const canvas = document.getElementById('visualizer-canvas') as HTMLCanvasElement;
-    if (!canvas || !audioFile) return;
+    
+    if (!audioFile) {
+      alert('Please upload an audio track first.');
+      return;
+    }
+
+    if (!duration || duration <= 0) {
+      alert('Audio duration not detected. Please wait for the track to load.');
+      return;
+    }
+
+    if (!canvas) {
+      alert('Visualizer canvas not found.');
+      return;
+    }
 
     try {
       setIsExporting(true);
@@ -78,7 +92,8 @@ export default function App() {
       a.click();
     } catch (err) {
       console.error('Export failed:', err);
-      alert('Export failed. Please ensure your browser supports MediaRecorder and FFmpeg WASM.');
+      const msg = err instanceof Error ? err.message : String(err);
+      alert(`Export failed: ${msg}\n\nPlease try again. Note: Large files may take longer to process.`);
     } finally {
       setIsExporting(false);
       setExportProgress(0);

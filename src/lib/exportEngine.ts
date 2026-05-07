@@ -15,16 +15,40 @@ export async function exportVideo(
     wasmURL: await toBlobURL(`${baseURL}/ffmpeg-core.wasm`, 'application/wasm'),
   });
 
+  ffmpeg.on('log', ({ message }) => console.log('FFmpeg:', message));
+
   return new Promise((resolve, reject) => {
+    const supportedMimeTypes = [
+      'video/webm;codecs=vp9',
+      'video/webm;codecs=vp8',
+      'video/webm',
+      'video/mp4'
+    ];
+    
+    const mimeType = supportedMimeTypes.find(type => MediaRecorder.isTypeSupported(type)) || '';
+    console.log('Selected mimeType:', mimeType);
+
     const stream = canvas.captureStream(30); // 30 FPS
-    const recorder = new MediaRecorder(stream, {
-      mimeType: 'video/webm;codecs=vp9',
-      videoBitsPerSecond: 5000000 // 5Mbps
-    });
+    
+    let recorder: MediaRecorder;
+    try {
+      recorder = new MediaRecorder(stream, {
+        mimeType,
+        videoBitsPerSecond: 5000000 // 5Mbps
+      });
+    } catch (e) {
+      console.error('MediaRecorder initialization failed:', e);
+      reject(new Error('MediaRecorder not supported or failed to initialize with selected mimeType.'));
+      return;
+    }
 
     const chunks: Blob[] = [];
-    recorder.ondataavailable = (e) => chunks.push(e.data);
+    recorder.ondataavailable = (e) => {
+      if (e.data.size > 0) chunks.push(e.data);
+    };
     
+    recorder.onerror = (e) => reject(e);
+
     recorder.onstop = async () => {
       try {
         const videoBlob = new Blob(chunks, { type: 'video/webm' });
@@ -52,19 +76,21 @@ export async function exportVideo(
       }
     };
 
-    // Start recording
-    recorder.start();
+    // Start recording with timeslice to ensure data chunks are provided
+    recorder.start(1000);
     
     // Progress tracking based on time
     let start = Date.now();
     const interval = setInterval(() => {
       const elapsed = (Date.now() - start) / 1000;
-      const progress = Math.min(0.8, elapsed / duration);
+      const progress = Math.min(0.8, (elapsed / (duration || 1)));
       onProgress(progress);
       
-      if (elapsed >= duration) {
+      if (elapsed >= (duration || 5)) {
         clearInterval(interval);
-        recorder.stop();
+        if (recorder.state === 'recording') {
+          recorder.stop();
+        }
       }
     }, 500);
   });
